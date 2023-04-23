@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Space Shooter Game</title>
+    <style>
+      body {
+        background-color: black;
+        margin: 0;
+        overflow: hidden;
+      }
+
+      .player {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 0;
+        height: 0;
+        border-left: 20px solid white;
+        border-top: 10px solid transparent;
+        border-bottom: 10px solid transparent;
+      }
+
+      .projectile {
+        position: absolute;
+        top: 50%;
+        left: 40px;
+        transform: translateY(-50%);
+        width: 10px;
+        height: 10px;
+        background-color: white;
+        border-radius: 50%;
+      }
+
+      .enemy {
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 20px;
+        height: 20px;
+        border: 1px solid white;
+      }
+
+      .hud {
+        color: white;
+        font-size: 24px;
+        -webkit-touch-callout: none; /* iOS Safari */
+        -webkit-user-select: none; /* Safari */
+        -khtml-user-select: none; /* Konqueror HTML */
+        -moz-user-select: none; /* Old versions of Firefox */
+        -ms-user-select: none; /* Internet Explorer/Edge */
+        user-select: none; /* Non-prefixed version, currently
+                                  supported by Chrome, Edge, Opera and Firefox */
+      }
+    </style>
+  </head>
+  <body>
+    <div class="hud" id="hud">Score: 0</div>
+
+    <script>
+      const PLAYER_SPEED = 5;
+      const PROJECTILE_SPEED = 10;
+
+      let ENEMY_SPEED = 2;
+      let ENEMY_SPAWN_INTERVAL = 10;
+
+      let playerY = window.innerHeight / 2;
+      let mouseY = window.innerHeight / 2;
+      let score = 0;
+      let projectiles = [];
+      let enemies = [];
+
+      // Hide the cursor
+      document.documentElement.style.cursor = "none";
+
+      // Reference the score div
+      let divHud = document.getElementById("hud");
+
+      // Track the mouse Y position
+      addEventListener("mousemove", onMouseMove, false);
+
+      // Move the player according to the mouse Y position
+      function onMouseMove(e) {
+        mouseY = e.pageY;
+        movePlayer(mouseY);
+      }
+
+      // Create player
+      const playerElement = document.createElement("div");
+      playerElement.className = "player no-cursor";
+      document.body.appendChild(playerElement);
+
+      // Game loop
+      function update() {
+        movePlayer();
+        moveProjectiles();
+        moveEnemies();
+        checkCollisions();
+        spawnEnemies();
+
+        requestAnimationFrame(update);
+      }
+
+      // Move player
+      function movePlayer(position) {
+        playerElement.style.top = position + "px";
+      }
+
+      // Move projectiles
+      function moveProjectiles() {
+        for (const projectile of projectiles) {
+          const left = parseFloat(projectile.style.left);
+          projectile.style.left = left + PROJECTILE_SPEED + "px";
+        }
+        projectiles = projectiles.filter((projectile) => {
+          return parseFloat(projectile.style.left) < window.innerWidth;
+        });
+      }
+
+      // Move enemies
+      function moveEnemies() {
+        for (const enemy of enemies) {
+          const right = parseFloat(enemy.style.right);
+          enemy.style.right = right + ENEMY_SPEED + "px";
+        }
+        enemies = enemies.filter((enemy) => {
+          return parseFloat(enemy.style.right) < window.innerWidth;
+        });
+      }
+
+      // Check collisions
+      function checkCollisions() {
+        for (const projectile of projectiles) {
+          const projectileRect = projectile.getBoundingClientRect();
+          for (const enemy of enemies) {
+            const enemyRect = enemy.getBoundingClientRect();
+            if (isCollision(projectileRect, enemyRect)) {
+              score++;
+              divHud.innerHTML = `Score: ${score}`;
+              projectile.remove();
+              enemy.remove();
+              projectiles = projectiles.filter((p) => p !== projectile);
+              enemies = enemies.filter((e) => e !== enemy);
+              ENEMY_SPEED = ENEMY_SPEED + 0.5;
+              ENEMY_SPAWN_INTERVAL = ENEMY_SPAWN_INTERVAL + 0.5;
+              break;
+            }
+          }
+        }
+
+        for (const enemy of enemies) {
+          const enemyRect = enemy.getBoundingClientRect();
+          const playerRect = playerElement.getBoundingClientRect();
+          if (isCollision(enemyRect, playerRect)) {
+            gameOver();
+            break;
+          }
+        }
+      }
+
+      // Spawn enemies
+      function spawnEnemies() {
+        if (Math.random() < ENEMY_SPAWN_INTERVAL / 1000) {
+          const enemy = document.createElement("div");
+          enemy.className = "enemy";
+          enemy.style.top = Math.random() * (window.innerHeight - 20) + "px";
+          enemy.style.right = "0";
+          document.body.appendChild(enemy);
+          enemies.push(enemy);
+        }
+      }
+      // Game over
+      function gameOver() {
+        divHud.innerHTML = `Game over, your score is ${score}`;
+        document.documentElement.style.cursor = "default";
+      }
+
+      // Utility function to check collision between two elements
+      function isCollision(rect1, rect2) {
+        return !(
+          rect1.right < rect2.left ||
+          rect1.left > rect2.right ||
+          rect1.bottom < rect2.top ||
+          rect1.top > rect2.bottom
+        );
+      }
+
+      // Event listener for player shooting
+      document.addEventListener("click", function (event) {
+        const projectile = document.createElement("div");
+        projectile.className = "projectile";
+        projectile.style.top = mouseY + "px";
+        projectile.style.left = "40px";
+        document.body.appendChild(projectile);
+        projectiles.push(projectile);
+      });
+
+      // Start the game loop
+      update();
+    </script>
+  </body>
+</html>
